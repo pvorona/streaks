@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["jsonProtocol"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id             String        @id @default(cuid())
+    email          String        @unique
+    password       String
+    userSettingsId String        @unique
+    userSettings   UserSettings  @relation(fields: [userSettingsId], references: [id])
+    interactions   Interaction[]
+    userRewards    UserReward[]
+}
+
+model UserSettings {
+    id            String  @id @default(cuid())
+    allowTracking Boolean
+    streakId      String
+    streak        Streak  @relation(fields: [streakId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+    User          User?
+}
+
+model Streak {
+    id                   String         @id @default(cuid())
+    minInteractions      Int
+    claimIntervalSeconds Int
+    backoffSeconds       Int
+    rewardId             String
+    reward               Reward         @relation(fields: [rewardId], references: [id])
+    userSettings         UserSettings[]
+    interactions         Interaction[]
+}
+
+model Reward {
+    id          String       @id @default(cuid())
+    title       String
+    description String
+    imageUrl    String
+    Streak      Streak[]
+    UserReward  UserReward[]
+}
+
+model Interaction {
+    id           String   @id @default(cuid())
+    timestamp    DateTime
+    serialNumber Int
+    userId       String
+    user         User     @relation(fields: [userId], references: [id])
+    streakId     String
+    streak       Streak   @relation(fields: [streakId], references: [id])
+
+    @@index([userId, timestamp])
+}
+
+model UserReward {
+    id        String   @id @default(cuid())
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
+    rewardId  String
+    reward    Reward   @relation(fields: [rewardId], references: [id])
+    createdAt DateTime @default(now())
+}
